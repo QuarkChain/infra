@@ -2,11 +2,9 @@ package nat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
-	"os"
 	"strconv"
 
 	"github.com/urfave/cli/v2"
@@ -14,15 +12,19 @@ import (
 	"github.com/ethereum-optimism/infra/op-nat/flags"
 	"github.com/ethereum-optimism/infra/op-nat/network"
 	"github.com/ethereum-optimism/infra/op-nat/wallet"
+
+	sdkDescriptors "github.com/ethereum-optimism/optimism/devnet-sdk/descriptors"
+	sdkSystem "github.com/ethereum-optimism/optimism/devnet-sdk/system"
+	sdkTypes "github.com/ethereum-optimism/optimism/devnet-sdk/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type Config struct {
 	// Network config
-	SC         SuperchainManifest
+	System     sdkSystem.System
 	Validators []Validator
 
-	Wallets []*wallet.Wallet
+	Wallets []sdkTypes.Wallet // this was wallet.Wallet
 
 	// Networks
 	L1  *network.Network
@@ -37,22 +39,20 @@ func NewConfig(ctx *cli.Context, log log.Logger, validators []Validator) (*Confi
 		return nil, fmt.Errorf("missing required flags: %w", err)
 	}
 
-	// Parse kurtosis-devnet manifest
-	manifest, err := parseManifest(ctx.String(flags.KurtosisDevnetManifest.Name))
+	sys, err := sdkSystem.NewSystemFromEnv(ctx.String(flags.KurtosisDevnetManifest.Name))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse kurtosis-devnet manifest: %w", err)
 	}
-
-	wallets := []*wallet.Wallet{}
-	for i, w := range manifest.L1.Wallets {
-		w, err := wallet.NewWallet(w.PrivateKey, fmt.Sprintf("user-key-%s", i))
+	wallets := []sdkDescriptors.Wallet{} // sdkTypes.Wallet?
+	for _, chain := range []sdkSystem.Chain{sys.L1()} {
+		w, err := chain.Wallet(ctx.Context)
 		if err != nil {
-			log.Warn("error creating wallet: %w", err)
+			return nil, fmt.Errorf("failed to get wallet: %w", err)
 		}
 		wallets = append(wallets, w)
 	}
 
-	l1ID, err := strconv.Atoi(manifest.L1.ID)
+	l1ID, err := strconv.Atoi(sys.L1.ID)
 	if err != nil {
 		log.Warn("L1 Chain ID was not supplied, will skip l1 chain-id test")
 		l1ID = -1
@@ -61,16 +61,16 @@ func NewConfig(ctx *cli.Context, log log.Logger, validators []Validator) (*Confi
 	l1, err := network.NewNetwork(
 		ctx.Context,
 		log,
-		manifest.L1.Name,
-		manifest.L1.Nodes[0].Services.EL.Endpoints["rpc"].Host,
-		manifest.L1.Nodes[0].Services.EL.Endpoints["rpc"].Secure,
+		sys.L1.Name,
+		sys.L1.Nodes[0].Services.EL.Endpoints["rpc"].Host,
+		sys.L1.Nodes[0].Services.EL.Endpoints["rpc"].Secure,
 		big.NewInt(int64(l1ID)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup l1 network: %w", err)
 	}
 
-	l2AID, err := strconv.Atoi(manifest.L2[0].ID)
+	l2AID, err := strconv.Atoi(sys.L2[0].ID)
 	if err != nil {
 		log.Warn("L2A Chain ID was not supplied, will skip l2A chain-id test")
 		l2AID = -1
@@ -79,9 +79,9 @@ func NewConfig(ctx *cli.Context, log log.Logger, validators []Validator) (*Confi
 	l2A, err := network.NewNetwork(
 		ctx.Context,
 		log,
-		manifest.L2[0].Name,
-		manifest.L2[0].Nodes[0].Services.EL.Endpoints["rpc"].Host,
-		manifest.L2[0].Nodes[0].Services.EL.Endpoints["rpc"].Secure,
+		sys.L2[0].Name,
+		sys.L2[0].Nodes[0].Services.EL.Endpoints["rpc"].Host,
+		sys.L2[0].Nodes[0].Services.EL.Endpoints["rpc"].Secure,
 		big.NewInt(int64(l2AID)),
 	)
 	if err != nil {
@@ -89,27 +89,13 @@ func NewConfig(ctx *cli.Context, log log.Logger, validators []Validator) (*Confi
 	}
 
 	return &Config{
-		SC:         *manifest,
+		System:     *sys,
 		Validators: validators,
 		L1:         l1,
 		L2A:        l2A,
 		Wallets:    wallets,
 		Log:        log,
 	}, nil
-}
-
-func parseManifest(manifestPath string) (*SuperchainManifest, error) {
-	manifest, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read manifest file: %w", err)
-	}
-
-	var superchainManifest SuperchainManifest
-	if err := json.Unmarshal(manifest, &superchainManifest); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal manifest: %w", err)
-	}
-	return &superchainManifest, nil
-
 }
 
 // GetNetworks returns all of the networks in an array

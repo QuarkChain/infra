@@ -29,7 +29,6 @@ func (w *Wallet) Address() common.Address {
 
 // NewWallet creates a new wallet.
 func NewWallet(privateKeyHex, name string) (*Wallet, error) {
-
 	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(privateKeyHex, "0x"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid private key: %w", err)

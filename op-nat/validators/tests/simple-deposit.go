@@ -36,7 +36,7 @@ var SimpleDeposit = nat.Test{
 		p := params.(SimpleDepositParams)
 		wallet, err := SetupSimpleDepositTest(ctx, cfg, p)
 
-		l2ProxyPortal := common.HexToAddress(cfg.SC.L2[0].Addresses.OptimismPortalProxy)
+		l2ProxyPortal := common.HexToAddress(cfg.System.L2[0].Addresses.OptimismPortalProxy)
 		if err != nil {
 			return false, err
 		}
