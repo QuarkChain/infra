@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	signer "github.com/ethereum-optimism/infra/op-signer"
+	"github.com/ethereum-optimism/infra/op-signer/service/provider"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 )
@@ -46,6 +47,12 @@ func main() {
 					Flags:  cliapp.ProtectFlags(signer.ClientSignCLIFlags("SIGNER")),
 				},
 			},
+		},
+		{
+			Name:   "address",
+			Usage:  "get signer address from key name",
+			Action: provider.ToAddr(),
+			Flags:  cliapp.ProtectFlags(signer.CLIFlags("OP_SIGNER")),
 		},
 	}
 
