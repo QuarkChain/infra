@@ -9,7 +9,6 @@ import (
 	"cloud.google.com/go/kms/apiv1/kmspb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/urfave/cli/v2"
 )
 
 func PEMPublicKeyToAddress(keyName string) (*common.Address, error) {
@@ -27,29 +26,20 @@ func PEMPublicKeyToAddress(keyName string) (*common.Address, error) {
 	if err != nil {
 		return nil, fmt.Errorf("kms get public key request failed: %w", err)
 	}
+	fmt.Printf("PEM:\n%s", result.Pem)
 
 	key := []byte(result.Pem)
 	if int64(crc32c(key)) != result.PemCrc32C.Value {
 		return nil, errors.New("cloud kms public key response corrupted in transit")
 	}
 
-	publicKeyBytes, err := decodePublicKeyPEM(key)
+	uncompressed, err := decodePublicKeyPEM(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode public key: %w", err)
 	}
-	hash := crypto.Keccak256(publicKeyBytes)
+	fmt.Printf("HEX:\n%x\n", uncompressed)
+	hash := crypto.Keccak256(uncompressed[1:])
 	addr := common.BytesToAddress(hash[len(hash)-20:])
+	fmt.Printf("Addr:\n%s\n", addr)
 	return &addr, nil
-}
-
-func ToAddr() cli.ActionFunc {
-	return func(cliCtx *cli.Context) error {
-		keyName := cliCtx.String("key-name")
-		addr, err := PEMPublicKeyToAddress(keyName)
-		if err != nil {
-			return err
-		}
-		fmt.Println(addr)
-		return nil
-	}
 }

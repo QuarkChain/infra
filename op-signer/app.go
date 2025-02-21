@@ -27,6 +27,7 @@ import (
 
 	"github.com/ethereum-optimism/infra/op-signer/client"
 	"github.com/ethereum-optimism/infra/op-signer/service"
+	"github.com/ethereum-optimism/infra/op-signer/service/provider"
 )
 
 type SignerApp struct {
@@ -271,6 +272,24 @@ func ClientSign(version string, action SignActionType) func(cliCtx *cli.Context)
 			return errors.New("no action was provided")
 		}
 
+		return nil
+	}
+}
+
+func ToAddresses() cli.ActionFunc {
+	return func(cliCtx *cli.Context) error {
+		cfg := NewConfig(cliCtx)
+		serviceCfg, err := service.ReadConfig(cfg.ServiceConfigPath)
+		if err != nil {
+			return fmt.Errorf("failed to read service config: %w", err)
+		}
+		for i, auth := range serviceCfg.Auth {
+			addr, err := provider.PEMPublicKeyToAddress(auth.KeyName)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%d: %s => %s\n", i, auth.KeyName, addr)
+		}
 		return nil
 	}
 }
