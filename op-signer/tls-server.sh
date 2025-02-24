@@ -21,7 +21,7 @@ DAYS_VALID="3650"
 SCRIPT_DIR="$(
  cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd
 )"
-TLS_DIR="${SCRIPT_DIR}/tls"
+TLS_DIR="${SCRIPT_DIR}/tls-server"
 echo "TLS directory: ${TLS_DIR}"
 echo "Generating mTLS credentials for server..."
 mkdir -p "${TLS_DIR}"

@@ -16,11 +16,10 @@ DAYS_VALID="3650"
 SCRIPT_DIR="$(
   cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd
 )"
-TLS_DIR="${SCRIPT_DIR}/tls"
-echo "TLS directory: ${TLS_DIR}"
+CA_DIR="${SCRIPT_DIR}/tls-server"
 
-if [[ ! -f "${TLS_DIR}/ca.crt" || ! -f "${TLS_DIR}/ca.key" ]]; then
-  echo "Error: Missing required CA files (ca.crt and ca.key) in '${TLS_DIR}'."
+if [[ ! -f "${CA_DIR}/ca.crt" || ! -f "${CA_DIR}/ca.key" ]]; then
+  echo "Error: Missing required CA files (ca.crt and ca.key) in '${CA_DIR}'."
   echo "Please ensure both files exist before proceeding."
   exit 1
 fi
@@ -29,7 +28,9 @@ fi
 # Generate Client Private Key and CSR
 # ------------------------------------------------------------------------------
 echo "Generating client mTLS credentials..."
-
+TLS_DIR="${SCRIPT_DIR}/tls"
+echo "TLS directory: ${TLS_DIR}"
+mkdir -p "${TLS_DIR}"
 cd "${TLS_DIR}"
 
 KEY_FILE="tls.key"
@@ -57,8 +58,8 @@ openssl x509 \
   -req \
   -days "${DAYS_VALID}" \
   -in "${CSR_FILE}" \
-  -CA ca.crt \
-  -CAkey ca.key \
+  -CA "${CA_DIR}/ca.crt" \
+  -CAkey "${CA_DIR}/ca.key" \
   -CAcreateserial \
   -out "${CRT_FILE}" \
   -extfile <(printf "subjectAltName=DNS:${SIGNER_CLIENT_DNS}")
