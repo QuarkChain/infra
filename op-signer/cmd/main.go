@@ -51,7 +51,6 @@ func main() {
 			Name:   "address",
 			Usage:  "get signer address from key names",
 			Action: signer.ToAddresses(),
-			Flags:  cliapp.ProtectFlags(signer.CLIFlags("OP_SIGNER")),
 		},
 	}
 

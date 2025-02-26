@@ -38,8 +38,12 @@ func PEMPublicKeyToAddress(keyName string) (*common.Address, error) {
 		return nil, fmt.Errorf("failed to decode public key: %w", err)
 	}
 	fmt.Printf("HEX:\n%x\n", uncompressed)
-	hash := crypto.Keccak256(uncompressed[1:])
-	addr := common.BytesToAddress(hash[len(hash)-20:])
-	fmt.Printf("Addr:\n%s\n", addr)
+
+	addr := pubKeyAddr(uncompressed)
 	return &addr, nil
+}
+
+func pubKeyAddr(bytes []byte) common.Address {
+	hash := crypto.Keccak256(bytes[1:])
+	return common.BytesToAddress(hash[len(hash)-20:])
 }
