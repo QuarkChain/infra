@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# ------------------------------------------------------------------------------
+# Usage:
+# export SIGNER_CLIENT_DNS=<DNS of the client>
+# ./tls-client.sh
+# ------------------------------------------------------------------------------
+
 set -e
 
 VERSION="$(openssl version)"

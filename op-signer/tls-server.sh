@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# ------------------------------------------------------------------------------
+# Usage:
+# export SIGNER_SERVER_HOST=<DNS or IP of op-signer server>
+# ./tls-server.sh
+# ------------------------------------------------------------------------------
+
 set -e
 
 VERSION="$(openssl version)"
