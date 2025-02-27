@@ -47,6 +47,11 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:   "address",
+			Usage:  "get signer address from key names",
+			Action: signer.ToAddresses(),
+		},
 	}
 
 	app.Action = cliapp.LifecycleCmd(signer.MainAppAction(Version))
