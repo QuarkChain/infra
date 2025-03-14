@@ -20,16 +20,14 @@ fi
 
 MODE=$1
 IP_ADDRESS=$2
-
-echo "Generating mTLS credentials for $MODE..."
-
 CA_SUBJECT="/O=SWC/CN=SWC root CA"
 SUBJECT="/O=SWC/CN=SWC op-signer $MODE"
-ALT_NAME="IP:${IP_ADDRESS}"
+ALT_NAME="DNS:localhost,IP:${IP_ADDRESS}"
 DAYS_VALID="3650"
-
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 TLS_DIR_SERVER="${SCRIPT_DIR}/tls-server"
+
+echo "Generating mTLS credentials for $MODE..."
 mkdir -p "${TLS_DIR_SERVER}"
 cd "${TLS_DIR_SERVER}"
 
@@ -77,6 +75,7 @@ openssl genpkey \
 echo "Generating TLS certificate signing request..."
 openssl req \
 -subj "${SUBJECT}" \
+-addext "subjectAltName=${ALT_NAME}" \
 -new \
 -key tls.key \
 -out tls.csr
