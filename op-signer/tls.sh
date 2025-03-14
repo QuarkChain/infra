@@ -23,7 +23,6 @@ IP_ADDRESS=$2
 CA_SUBJECT="/O=SWC/CN=SWC root CA"
 SUBJECT="/O=SWC/CN=SWC op-signer $MODE"
 ALT_NAME="DNS:localhost,IP:${IP_ADDRESS}"
-CNF="[v3_req]\nsubjectAltName=${ALT_NAME}\nextendedKeyUsage=${MODE}Auth"
 DAYS_VALID="3650"
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 TLS_DIR_SERVER="${SCRIPT_DIR}/tls-server"
@@ -76,7 +75,7 @@ openssl genpkey \
 echo "Generating TLS certificate signing request..."
 openssl req \
 -subj "${SUBJECT}" \
--addext "${CNF}" \
+-addext "subjectAltName=${ALT_NAME}" \
 -new \
 -key tls.key \
 -out tls.csr
@@ -87,10 +86,10 @@ openssl req \
 echo "Signing CSR with CA to obtain certificate..."
 openssl x509 \
 -req \
--extfile <(printf "${CNF}") \
+-extfile <(printf "subjectAltName=${ALT_NAME}") \
 -days "${DAYS_VALID}" \
 -CA ca.crt \
--CAkey "${TLS_DIR_SERVER}"/ca.key \
+-CAkey "$TLS_DIR_SERVER"/ca.key \
 -CAcreateserial \
 -in tls.csr \
 -out tls.crt
