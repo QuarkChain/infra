@@ -58,6 +58,7 @@ case $MODE in
         TLS_DIR="${SCRIPT_DIR}/tls"
         mkdir -p "$TLS_DIR"
         cd "$TLS_DIR"
+        cp "$TLS_DIR_SERVER"/ca.crt .
         ;;
     *)
         echo "Invalid mode: '$mode'. Must be 'server' or 'client'."
@@ -88,11 +89,12 @@ openssl x509 \
 -req \
 -extfile <(printf "subjectAltName=${ALT_NAME}") \
 -days "${DAYS_VALID}" \
--CA "$TLS_DIR_SERVER"/ca.crt \
+-CA ca.crt \
 -CAkey "$TLS_DIR_SERVER"/ca.key \
 -CAcreateserial \
 -in tls.csr \
 -out tls.crt
 
+rm tls.csr
 cd "${SCRIPT_DIR}"
 echo "TLS generation for $MODE completed."
