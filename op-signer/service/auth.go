@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"net"
 	"net/http"
 
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
@@ -31,8 +31,17 @@ func NewAuthMiddleware() oprpc.Middleware {
 				http.Error(w, "client certificate verified but did not contain IP SAN extension", 401)
 				return
 			}
-			clientInfo.ClientName = peerTlsInfo.LeafCertificate.IPAddresses[0].String()
-			fmt.Printf("Set ClientName: %s\n", clientInfo.ClientName)
+			certIP := peerTlsInfo.LeafCertificate.IPAddresses[0].String()
+			reqIP, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				http.Error(w, "failed to parse remote address", 400)
+				return
+			}
+			if certIP != reqIP {
+				http.Error(w, "client certificate IP does not match remote address", 401)
+				return
+			}
+			clientInfo.ClientName = certIP
 
 			ctx := context.WithValue(r.Context(), clientInfoContextKey{}, clientInfo)
 			next.ServeHTTP(w, r.WithContext(ctx))
