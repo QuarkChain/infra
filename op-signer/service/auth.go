@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
@@ -26,11 +27,12 @@ func NewAuthMiddleware() oprpc.Middleware {
 				return
 			}
 			// Note that the certificate is already verified by http server if we get here
-			if len(peerTlsInfo.LeafCertificate.DNSNames) < 1 {
-				http.Error(w, "client certificate verified but did not contain DNS SAN extension", 401)
+			if len(peerTlsInfo.LeafCertificate.IPAddresses) < 1 {
+				http.Error(w, "client certificate verified but did not contain IP SAN extension", 401)
 				return
 			}
-			clientInfo.ClientName = peerTlsInfo.LeafCertificate.DNSNames[0]
+			clientInfo.ClientName = peerTlsInfo.LeafCertificate.IPAddresses[0].String()
+			fmt.Printf("Set ClientName: %s\n", clientInfo.ClientName)
 
 			ctx := context.WithValue(r.Context(), clientInfoContextKey{}, clientInfo)
 			next.ServeHTTP(w, r.WithContext(ctx))
