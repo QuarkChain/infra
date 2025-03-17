@@ -37,6 +37,7 @@ func NewAuthMiddleware() oprpc.Middleware {
 				http.Error(w, "failed to parse remote address", 400)
 				return
 			}
+			// Check that the IP in the client certificate matches the remote IP address from the request
 			if certIP != reqIP {
 				http.Error(w, "client certificate IP does not match remote address", 401)
 				return
