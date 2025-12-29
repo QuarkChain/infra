@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"sync/atomic"
 
@@ -37,6 +38,7 @@ type SignerApp struct {
 
 	pprofServer   *oppprof.Service
 	metricsServer *httputil.HTTPServer
+	healthzServer *httputil.HTTPServer
 	registry      *prometheus.Registry
 
 	signer *service.SignerService
@@ -63,6 +65,9 @@ func (s *SignerApp) init(cfg *Config) error {
 	}
 	if err := s.initMetrics(cfg); err != nil {
 		return fmt.Errorf("metrics error: %w", err)
+	}
+	if err := s.initHealthz(cfg); err != nil {
+		return fmt.Errorf("healthz error: %w", err)
 	}
 	if err := s.initRPC(cfg); err != nil {
 		return fmt.Errorf("metrics error: %w", err)
@@ -106,6 +111,27 @@ func (s *SignerApp) initMetrics(cfg *Config) error {
 	}
 	s.log.Info("Started metrics server", "endpoint", metricsServer.Addr())
 	s.metricsServer = metricsServer
+	return nil
+}
+
+func (s *SignerApp) initHealthz(cfg *Config) error {
+	if !cfg.HealthzConfig.Enabled {
+		return nil
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	addr := fmt.Sprintf("%s:%d", cfg.HealthzConfig.ListenAddr, cfg.HealthzConfig.ListenPort)
+	healthzServer, err := httputil.StartHTTPServer(addr, mux)
+	if err != nil {
+		return fmt.Errorf("failed to start healthz server: %w", err)
+	}
+	s.healthzServer = healthzServer
+	s.log.Info("Started healthz server", "addr", healthzServer.Addr())
 	return nil
 }
 
@@ -180,6 +206,11 @@ func (s *SignerApp) Stop(ctx context.Context) error {
 	if s.metricsServer != nil {
 		if err := s.metricsServer.Stop(ctx); err != nil {
 			result = errors.Join(result, fmt.Errorf("failed to stop metrics server: %w", err))
+		}
+	}
+	if s.healthzServer != nil {
+		if err := s.healthzServer.Stop(ctx); err != nil {
+			result = errors.Join(result, fmt.Errorf("failed to stop healthz server: %w", err))
 		}
 	}
 	return result
