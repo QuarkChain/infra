@@ -1,6 +1,9 @@
 package app
 
 import (
+	"errors"
+	"math"
+
 	"github.com/urfave/cli/v2"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
@@ -23,6 +26,10 @@ type HealthzConfig struct {
 }
 
 func (c HealthzConfig) Check() error {
+	if c.ListenPort < 0 || c.ListenPort > math.MaxUint16 {
+		return errors.New("invalid healthz port")
+	}
+
 	return nil
 }
 
