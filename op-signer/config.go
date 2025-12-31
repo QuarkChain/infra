@@ -1,9 +1,6 @@
 package app
 
 import (
-	"errors"
-	"math"
-
 	"github.com/urfave/cli/v2"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
@@ -19,56 +16,6 @@ const (
 	ClientEndpointFlagName    = "endpoint"
 )
 
-type HealthzConfig struct {
-	Enabled    bool
-	ListenAddr string
-	ListenPort int
-}
-
-func (c HealthzConfig) Check() error {
-	if c.ListenPort < 0 || c.ListenPort > math.MaxUint16 {
-		return errors.New("invalid healthz port")
-	}
-
-	return nil
-}
-
-const (
-	HealthzEnabledFlagName    = "healthz.enabled"
-	HealthzListenAddrFlagName = "healthz.addr"
-	HealthzListenPortFlagName = "healthz.port"
-)
-
-func HealthzCLIFlags(envPrefix string) []cli.Flag {
-	return []cli.Flag{
-		&cli.BoolFlag{
-			Name:    HealthzEnabledFlagName,
-			Usage:   "Enable the health check server",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "HEALTHZ_ENABLED"),
-		},
-		&cli.StringFlag{
-			Name:    HealthzListenAddrFlagName,
-			Usage:   "Health check server listening address",
-			Value:   "0.0.0.0",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "HEALTHZ_ADDR"),
-		},
-		&cli.IntFlag{
-			Name:    HealthzListenPortFlagName,
-			Usage:   "Health check server listening port",
-			Value:   7600,
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "HEALTHZ_PORT"),
-		},
-	}
-}
-
-func ReadHealthzCLIConfig(ctx *cli.Context) HealthzConfig {
-	return HealthzConfig{
-		Enabled:    ctx.Bool(HealthzEnabledFlagName),
-		ListenAddr: ctx.String(HealthzListenAddrFlagName),
-		ListenPort: ctx.Int(HealthzListenPortFlagName),
-	}
-}
-
 func CLIFlags(envPrefix string) []cli.Flag {
 	flags := []cli.Flag{
 		&cli.StringFlag{
@@ -83,7 +30,6 @@ func CLIFlags(envPrefix string) []cli.Flag {
 	flags = append(flags, opmetrics.CLIFlags(envPrefix)...)
 	flags = append(flags, oppprof.CLIFlags(envPrefix)...)
 	flags = append(flags, optls.CLIFlags(envPrefix)...)
-	flags = append(flags, HealthzCLIFlags(envPrefix)...)
 	return flags
 }
 
@@ -108,7 +54,6 @@ type Config struct {
 	LogConfig     oplog.CLIConfig
 	MetricsConfig opmetrics.CLIConfig
 	PprofConfig   oppprof.CLIConfig
-	HealthzConfig HealthzConfig
 }
 
 func (c Config) Check() error {
@@ -124,9 +69,6 @@ func (c Config) Check() error {
 	if err := c.TLSConfig.Check(); err != nil {
 		return err
 	}
-	if err := c.HealthzConfig.Check(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -139,6 +81,5 @@ func NewConfig(ctx *cli.Context) *Config {
 		LogConfig:         oplog.ReadCLIConfig(ctx),
 		MetricsConfig:     opmetrics.ReadCLIConfig(ctx),
 		PprofConfig:       oppprof.ReadCLIConfig(ctx),
-		HealthzConfig:     ReadHealthzCLIConfig(ctx),
 	}
 }
